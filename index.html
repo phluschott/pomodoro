@@ -114,7 +114,7 @@
   @media (prefers-reduced-motion: reduce) { .slot.earned { animation: none; } }
 
   #rewards { gap: .5rem; align-items: center; }
-  #rewards .label { opacity: .85; margin-right: .3rem; }
+  #rewards .label { flex-basis: 100%; text-align: center; opacity: .85; }
   .reward-opt {
     /* 75% of the earned-icon size (.slot) */
     --size: min(120px, 15vw);
@@ -161,8 +161,8 @@
   </div>
 
   <div class="row" id="presets" aria-label="Presets"></div>
-  <div class="row" id="rewards" role="radiogroup" aria-label="Reward" hidden>
-    <span class="label">Reward</span>
+  <div class="row" id="rewards" role="radiogroup" aria-labelledby="rewards-label" hidden>
+    <span class="label" id="rewards-label">Choose a Corgi for your Round Award.</span>
   </div>
 
   <div id="settings">
