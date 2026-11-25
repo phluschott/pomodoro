@@ -130,6 +130,17 @@
   .reward-opt img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .reward-opt.active { border-color: var(--ring); }
 
+  /* ---- Instructions ---- */
+  #help {
+    width: min(38rem, 94vw); text-align: left; line-height: 1.5; font-size: .95rem;
+    background: var(--panel); border-radius: .8rem; padding: 1rem 1.4rem 1.2rem;
+    margin-bottom: 1rem;
+  }
+  #help h2 { margin: 0 0 .4rem; font-size: 1.2rem; }
+  #help h3 { margin: 1rem 0 .25rem; font-size: 1rem; opacity: .9; }
+  #help ul { margin: 0; padding-left: 1.2rem; }
+  #help li { margin: .25rem 0; }
+
   /* icons only appear in compact mode */
   .ico { display: none; fill: currentColor; }
   body { justify-content: safe center; overflow: auto; }
@@ -137,7 +148,7 @@
   /* Compact mode: just the clock and a round pause/play button */
   @media (max-width: 340px), (max-height: 300px) {
     body { gap: min(3vh, 3vw); padding: 0; overflow: hidden; justify-content: center; }
-    #phase, #round, #reset, #skip, #presets, #themes, #settings, #tray, #rewards { display: none; }
+    #phase, #round, #reset, #skip, #presets, #themes, #settings, #tray, #rewards, #help { display: none; }
     #time { font-size: min(27vw, 40vh); }
     #start {
       width: min(24vw, 28vh); height: min(24vw, 28vh);
@@ -185,6 +196,60 @@
   </div>
 
   <div class="row" id="themes" role="radiogroup" aria-label="Theme"></div>
+
+  <section id="help" aria-labelledby="help-title">
+    <h2 id="help-title">How it works</h2>
+
+    <h3>The basics</h3>
+    <ul>
+      <li><b>Start / Pause / Resume</b> runs the clock. The spacebar does the same.</li>
+      <li><b>Reset</b> stops the timer, goes back to Round 1 and clears your earned icons.</li>
+      <li><b>Skip</b> jumps straight to the next phase. A skipped work period does not earn an icon.</li>
+      <li>A chime plays at the end of each phase. Turn it off with <b>Chime at phase end</b>.</li>
+    </ul>
+
+    <h3>Rounds and Sets</h3>
+    <ul>
+      <li>A <b>Round</b> is one work period plus the break after it.</li>
+      <li>A <b>Set</b> is a group of Rounds. Choose its length with <b>Rounds before long break</b>.
+          After the last Round's work period you get the <b>Long break</b>, and the Set ends when that break ends.</li>
+      <li>Set <b>Rounds before long break</b> to 0 for endless Rounds with no long break.</li>
+      <li>The colored background and the big word under the clock show the current phase: Work, Rest or Long break.</li>
+    </ul>
+
+    <h3>Choose your split</h3>
+    <ul>
+      <li>Pick a preset: <b>25 / 5</b>, <b>50 / 10</b>, <b>52 / 17</b> or <b>90 / 20</b> (work minutes / rest minutes).</li>
+      <li>Pick <b>Custom</b> to type your own Work and Rest minutes.</li>
+      <li>Changing a time or the number of Rounds stops the timer and gives you a fresh work period. Your earned icons are kept.</li>
+    </ul>
+
+    <h3>Auto-start</h3>
+    <ul>
+      <li>A work period always flows into its break on its own.</li>
+      <li><b>Auto-start next Round</b>: when a Round's break ends, the next work period starts by itself.
+          Unchecked, the timer stops and waits for you to press Start.</li>
+      <li><b>Auto-start next Set</b>: when the long break ends, the next Set starts by itself.
+          Unchecked, the timer stops at the end of the Set. This option needs Rounds before long break to be 1 or more.</li>
+    </ul>
+
+    <h3>Round Awards</h3>
+    <ul>
+      <li>There is one square for every Round in the Set. Finish a work period and its square fills with your chosen award.</li>
+      <li>Complete the whole Set and every square is filled. They stay until you start the next Set.</li>
+      <li>Below the presets, pick which award you want. Your earned icons are saved, so they survive a page reload.</li>
+    </ul>
+
+    <h3>Colors and small windows</h3>
+    <ul>
+      <li>Pick one of ten color themes below the settings. Themes 1&ndash;8 are calm colors; 9 and 10 are dark &ldquo;coder&rdquo; themes.
+          Each theme uses a different background for Work, Rest and Long break.</li>
+      <li>Make the window very small and the page shows just the clock and a round Play/Pause button.
+          The background color still tells you the phase.</li>
+      <li>The time and phase also show in the browser tab title.</li>
+      <li>All of your choices are saved in this browser.</li>
+    </ul>
+  </section>
 
 <script>
 (() => {
