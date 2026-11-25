@@ -114,6 +114,11 @@
   #settings .check { grid-column: 1 / -1; display: flex; gap: .5rem; align-items: center; justify-content: center; }
   #settings .check span { text-align: left; }
   #settings .check input:disabled + span { opacity: .45; }
+  #settings .bookmark { flex-direction: column; gap: .25rem; margin-top: .3rem; }
+  #settings .bookmark a { color: var(--fg); text-underline-offset: .2em; }
+  #settings .bookmark a:hover { opacity: .8; }
+  #settings .bookmark a:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; border-radius: .2rem; }
+  #settings .bookmark span { text-align: center; font-size: .85rem; max-width: 18rem; }
   #custom[hidden] { display: none; }
 
   /* ---- Reward tray: one square per round, filled as rounds complete ---- */
@@ -205,6 +210,10 @@
     <label class="check"><input id="auto" type="checkbox"><span>Auto-start next Round</span></label>
     <label class="check"><input id="autoset" type="checkbox"><span>Auto-start next Set</span></label>
     <label class="check"><input id="sound" type="checkbox"><span>Chime at phase end</span></label>
+    <div class="check bookmark">
+      <a id="bookmark" href="./" title="Drag this link to your bookmarks bar, or click for the shortcut">Bookmark this Page</a>
+      <span id="bookmark-hint" role="status"></span>
+    </div>
   </div>
 
   <div class="row" id="themes" role="radiogroup" aria-label="Theme"></div>
@@ -260,6 +269,7 @@
           The background color still tells you the phase.</li>
       <li>The time and phase also show in the browser tab title.</li>
       <li>All of your choices are saved in this browser.</li>
+      <li>Click <b>Bookmark this Page</b>, at the bottom of the settings box, to see how to save this page for next time.</li>
     </ul>
   </section>
 
@@ -556,6 +566,18 @@
   els.auto.addEventListener("change", () => { cfg.auto = els.auto.checked; save(); });
   els.autoset.addEventListener("change", () => { cfg.autoSet = els.autoset.checked; save(); });
   els.sound.addEventListener("change", () => { cfg.sound = els.sound.checked; save(); });
+
+  // Pages can't create bookmarks themselves, so show the right shortcut for the
+  // device. The link's href is this page, so dragging it to a bookmarks bar works too.
+  const bookmark = $("bookmark"), bookmarkHint = $("bookmark-hint");
+  bookmark.href = location.href;
+  bookmark.addEventListener("click", e => {
+    e.preventDefault();
+    const ua = navigator.userAgent;
+    bookmarkHint.textContent = /iPhone|iPad|Android/i.test(ua)
+      ? "Open your browser menu or Share button and choose Add Bookmark."
+      : `Press ${/Mac/i.test(ua) ? "⌘ + D" : "Ctrl + D"} to bookmark this page.`;
+  });
 
   document.addEventListener("keydown", e => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
