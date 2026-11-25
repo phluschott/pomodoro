@@ -102,6 +102,7 @@
   }
   #settings .check { grid-column: 1 / -1; display: flex; gap: .5rem; align-items: center; justify-content: center; }
   #settings .check span { text-align: left; }
+  #settings .check input:disabled + span { opacity: .45; }
   #custom[hidden] { display: none; }
 
   /* ---- Reward tray: one square per round, filled as rounds complete ---- */
@@ -178,7 +179,8 @@
     </div>
     <label><span>Rounds before long break</span><input id="rounds" type="number" min="0" max="12" step="1"></label>
     <label><span>Long break (min)</span><input id="long" type="number" min="1" max="60" step="1"></label>
-    <label class="check"><input id="auto" type="checkbox"><span>Auto-start next phase</span></label>
+    <label class="check"><input id="auto" type="checkbox"><span>Auto-start next Round</span></label>
+    <label class="check"><input id="autoset" type="checkbox"><span>Auto-start next Set</span></label>
     <label class="check"><input id="sound" type="checkbox"><span>Chime at phase end</span></label>
   </div>
 
@@ -202,7 +204,7 @@
     { name: "Shrimp Shiba", src: "rewards/shrimp-shiba.png" },
     { name: "Tuna Shiba",   src: "rewards/tuna-shiba.png" },
   ];
-  const DEFAULTS = { preset: 0, theme: 0, reward: 0, work: 25, rest: 5, rounds: 4, long: 15, auto: true, sound: true };
+  const DEFAULTS = { preset: 0, theme: 0, reward: 0, work: 25, rest: 5, rounds: 4, long: 15, auto: true, autoSet: true, sound: true };
   const KEY = "pomodoro.settings.v1";
 
   const $ = id => document.getElementById(id);
@@ -212,7 +214,7 @@
     presets: $("presets"), themes: $("themes"), custom: $("custom"),
     tray: $("tray"), rewards: $("rewards"),
     work: $("work"), rest: $("rest"), rounds: $("rounds"), long: $("long"),
-    auto: $("auto"), sound: $("sound"),
+    auto: $("auto"), autoset: $("autoset"), sound: $("sound"),
   };
 
   // ---- settings -----------------------------------------------------------
@@ -278,7 +280,7 @@
       const longDue = cfg.rounds > 0 && round >= cfg.rounds;
       setPhase(longDue ? "long" : "rest");
     } else {
-      if (phase === "long") { round = 1; earned = 0; renderTray(); } else round += 1;
+      if (phase === "long") round = 1; else round += 1;
       setPhase("work");
     }
   }
@@ -310,6 +312,11 @@
     els.tray.setAttribute("aria-label", `${Math.min(earned, n)} of ${n} rounds complete`);
   }
 
+  // The finished set's icons stay on screen until the next set actually starts.
+  function startNewSetIfNeeded() {
+    if (phase === "work" && cfg.rounds > 0 && earned >= cfg.rounds) { earned = 0; renderTray(); }
+  }
+
   function finishPhase() {
     chime();
     if (phase === "work" && cfg.rounds > 0) {
@@ -317,8 +324,15 @@
       earned = Math.min(earned + 1, cfg.rounds);
       renderTray();
     }
+    // A Round is a work period plus the break after it; a Set is all the rounds
+    // up to and including the long break. Work -> break always flows on within
+    // the round. The settings only decide what happens at the *end* of a round
+    // (break -> next work) and at the end of a set (long break -> next set).
+    const from = phase;
     nextPhase();
-    if (cfg.auto) {
+    const auto = from === "work" ? true : from === "rest" ? cfg.auto : cfg.autoSet;
+    if (auto) {
+      startNewSetIfNeeded();
       endAt = Date.now() + remaining;
       running = true;
     } else {
@@ -331,6 +345,7 @@
 
   function begin() {
     if (running) return;
+    startNewSetIfNeeded();
     running = true;
     endAt = Date.now() + remaining;
     clearInterval(tick);
@@ -423,6 +438,8 @@
     els.work.value = cfg.work; els.rest.value = cfg.rest;
     els.rounds.value = cfg.rounds; els.long.value = cfg.long;
     els.auto.checked = cfg.auto; els.sound.checked = cfg.sound;
+    els.autoset.checked = cfg.autoSet;
+    els.autoset.disabled = cfg.rounds <= 0;   // no sets without a long break
     els.custom.hidden = PRESETS[cfg.preset].work !== null;
     [...els.presets.children].forEach((b, i) => b.classList.toggle("active", i === cfg.preset));
   }
@@ -460,6 +477,7 @@
   els.long.addEventListener("change", () => { cfg.long = clampInt(els.long.value, 1, 60, cfg.long); applyDurations(); });
   els.rounds.addEventListener("change", () => { cfg.rounds = clampInt(els.rounds.value, 0, 12, cfg.rounds); applyDurations(); });
   els.auto.addEventListener("change", () => { cfg.auto = els.auto.checked; save(); });
+  els.autoset.addEventListener("change", () => { cfg.autoSet = els.autoset.checked; save(); });
   els.sound.addEventListener("change", () => { cfg.sound = els.sound.checked; save(); });
 
   document.addEventListener("keydown", e => {
