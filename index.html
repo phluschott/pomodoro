@@ -14,19 +14,21 @@
     --start-bg: #fff; --start-fg: #222;
     --input-bg: #fff; --input-fg: #222;
   }
-  [data-theme="1"]  { --bg-work: #476b58; --bg-rest: #5d7c6c; --bg-long: #4f6b7a; } /* Sage */
-  [data-theme="2"]  { --bg-work: #2f6b7d; --bg-rest: #3f7f86; --bg-long: #3f5f86; } /* Ocean */
-  [data-theme="3"]  { --bg-work: #66598c; --bg-rest: #5a7595; --bg-long: #76668c; } /* Lavender */
-  [data-theme="4"]  { --bg-work: #3f5f8a; --bg-rest: #46788a; --bg-long: #56588a; } /* Dusk */
-  [data-theme="5"]  { --bg-work: #86654f; --bg-rest: #6d7653; --bg-long: #66707a; } /* Clay */
-  [data-theme="6"]  { --bg-work: #8f5f6c; --bg-rest: #77688a; --bg-long: #66788a; } /* Rose */
-  [data-theme="7"]  { --bg-work: #4f5d6b; --bg-rest: #566b62; --bg-long: #585d75; } /* Slate */
-  [data-theme="8"]  { --bg-work: #2f7468; --bg-rest: #3f7d70; --bg-long: #3f6b7d; } /* Mist */
+  [data-theme="1"]  { --bg-work: #476b58; --bg-rest: #3a68a8; --bg-long: #85507a; } /* Sage */
+  [data-theme="2"]  { --bg-work: #2f6b7d; --bg-rest: #8a6a3a; --bg-long: #75559a; } /* Ocean */
+  [data-theme="3"]  { --bg-work: #66598c; --bg-rest: #8a6a3a; --bg-long: #3f7d5e; } /* Lavender */
+  [data-theme="4"]  { --bg-work: #3f5f8a; --bg-rest: #8a6a3a; --bg-long: #85507a; } /* Dusk */
+  [data-theme="5"]  { --bg-work: #86654f; --bg-rest: #2f6b7d; --bg-long: #75559a; } /* Clay */
+  [data-theme="6"]  { --bg-work: #8f5f6c; --bg-rest: #3a68a8; --bg-long: #3f7d5e; } /* Rose */
+  [data-theme="7"]  { --bg-work: #4f5d6b; --bg-rest: #8a6a3a; --bg-long: #3a68a8; } /* Slate */
+  [data-theme="8"]  { --bg-work: #2f7468; --bg-rest: #8a6a3a; --bg-long: #75559a; } /* Mist */
   /* Coder themes: World Monitor dark palette (#0a0f0a bg; #4ade80 / #fbbf24 / #f87171 accents) */
   [data-theme="9"], [data-theme="10"] {
-    --bg-work: #0a0f0a; --bg-rest: #0a0f0a; --bg-long: #0a0f0a;
+    --bg-work: #0a0f0a; --bg-long: #240b0b;
     --input-bg: #121a12; --input-fg: #d6e6d6;
   }
+  [data-theme="9"]  { --bg-rest: #241a04; }   /* dark amber tint behind amber text */
+  [data-theme="10"] { --bg-rest: #0b2a17; }   /* dark green tint behind green text */
   [data-theme="9"] {
     --fg-work: #4ade80; --fg-rest: #fbbf24; --fg-long: #f87171;
     --panel: rgba(74,222,128,.10);
@@ -54,7 +56,11 @@
   body[data-phase="rest"] { background: var(--bg-rest); --fg: var(--fg-rest); --ring: var(--fg-rest); }
   body[data-phase="long"] { background: var(--bg-long); --fg: var(--fg-long); --ring: var(--fg-long); }
 
-  #phase { font-size: 1.1rem; letter-spacing: .25em; text-transform: uppercase; opacity: .85; }
+  #phase {
+    font-size: clamp(2rem, min(9vw, 9vh), 4.5rem); font-weight: 800;
+    letter-spacing: .22em; text-indent: .22em;   /* indent balances the trailing letter-space */
+    text-transform: uppercase; line-height: 1; margin-top: -.4rem;
+  }
   #time {
     font-size: clamp(4rem, min(22vw, 22vh), 11rem); font-weight: 700; line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -145,8 +151,8 @@
 </style>
 </head>
 <body data-phase="work" data-theme="1">
-  <div id="phase">Work</div>
   <div id="time" role="timer" aria-live="off">25:00</div>
+  <div id="phase" aria-live="polite">Work</div>
   <div id="round"></div>
   <div id="tray" role="img"></div>
 
