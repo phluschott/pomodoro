@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pomodoro</title>
+<style>
+  /* ---- Themes -----------------------------------------------------------
+     Applied to <body data-theme="N"> and to each swatch button, so a swatch
+     can preview its own colors. 1-8 calm; 9-10 dark "coder" themes. */
+  [data-theme] {
+    --fg-work: #fff; --fg-rest: #fff; --fg-long: #fff;
+    --panel: rgba(0,0,0,.22);
+    --start-bg: #fff; --start-fg: #222;
+    --input-bg: #fff; --input-fg: #222;
+  }
+  [data-theme="1"]  { --bg-work: #476b58; --bg-rest: #5d7c6c; --bg-long: #4f6b7a; } /* Sage */
+  [data-theme="2"]  { --bg-work: #2f6b7d; --bg-rest: #3f7f86; --bg-long: #3f5f86; } /* Ocean */
+  [data-theme="3"]  { --bg-work: #66598c; --bg-rest: #5a7595; --bg-long: #76668c; } /* Lavender */
+  [data-theme="4"]  { --bg-work: #3f5f8a; --bg-rest: #46788a; --bg-long: #56588a; } /* Dusk */
+  [data-theme="5"]  { --bg-work: #86654f; --bg-rest: #6d7653; --bg-long: #66707a; } /* Clay */
+  [data-theme="6"]  { --bg-work: #8f5f6c; --bg-rest: #77688a; --bg-long: #66788a; } /* Rose */
+  [data-theme="7"]  { --bg-work: #4f5d6b; --bg-rest: #566b62; --bg-long: #585d75; } /* Slate */
+  [data-theme="8"]  { --bg-work: #2f7468; --bg-rest: #3f7d70; --bg-long: #3f6b7d; } /* Mist */
+  /* Coder themes: World Monitor dark palette (#0a0f0a bg; #4ade80 / #fbbf24 / #f87171 accents) */
+  [data-theme="9"], [data-theme="10"] {
+    --bg-work: #0a0f0a; --bg-rest: #0a0f0a; --bg-long: #0a0f0a;
+    --input-bg: #121a12; --input-fg: #d6e6d6;
+  }
+  [data-theme="9"] {
+    --fg-work: #4ade80; --fg-rest: #fbbf24; --fg-long: #f87171;
+    --panel: rgba(74,222,128,.10);
+    --start-bg: #4ade80; --start-fg: #0a0f0a;
+  }
+  [data-theme="10"] {
+    --fg-work: #fbbf24; --fg-rest: #4ade80; --fg-long: #f87171;
+    --panel: rgba(251,191,36,.10);
+    --start-bg: #fbbf24; --start-fg: #0a0f0a;
+  }
+  body[data-theme="9"] #time, body[data-theme="10"] #time {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-weight: 600;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--fg);
+    background: var(--bg-work);
+    transition: background .6s;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1.5rem; padding: 1rem;
+  }
+  body { --fg: var(--fg-work); --ring: var(--fg-work); }
+  body[data-phase="rest"] { background: var(--bg-rest); --fg: var(--fg-rest); --ring: var(--fg-rest); }
+  body[data-phase="long"] { background: var(--bg-long); --fg: var(--fg-long); --ring: var(--fg-long); }
+
+  #phase { font-size: 1.1rem; letter-spacing: .25em; text-transform: uppercase; opacity: .85; }
+  #time {
+    font-size: clamp(4rem, min(22vw, 22vh), 11rem); font-weight: 700; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  #round { opacity: .75; min-height: 1.2em; }
+
+  .row { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; }
+  button {
+    font: inherit; color: var(--fg); background: var(--panel);
+    border: 2px solid transparent; border-radius: .6rem;
+    padding: .55rem 1.1rem; cursor: pointer;
+  }
+  button:hover { background: rgba(0,0,0,.35); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
+  button.active { border-color: var(--ring); }
+  #start { font-size: 1.3rem; padding: .7rem 2.2rem; background: var(--start-bg); color: var(--start-fg); font-weight: 600; }
+  #start:hover { background: var(--start-bg); filter: brightness(.92); }
+
+  #themes { gap: .5rem; }
+  .swatch {
+    width: 2.2rem; height: 2.2rem; padding: 0; border-radius: 50%;
+    font-size: .8rem; font-weight: 700; color: var(--fg-work);
+    background: linear-gradient(135deg, var(--bg-work) 50%, var(--bg-rest) 50%);
+    border: 2px solid rgba(255,255,255,.35);
+  }
+  .swatch:hover { background: linear-gradient(135deg, var(--bg-work) 50%, var(--bg-rest) 50%); filter: brightness(1.15); }
+  .swatch.active { border-color: var(--ring); box-shadow: 0 0 0 3px var(--ring); }
+  .swatch[data-theme="9"], .swatch[data-theme="10"] { border-color: rgba(255,255,255,.55); }
+
+  #settings {
+    background: var(--panel); border-radius: .8rem; padding: 1rem 1.2rem;
+    display: grid; grid-template-columns: repeat(2, auto); gap: .6rem 1.2rem; align-items: center;
+  }
+  #settings label { display: contents; }
+  #settings span { text-align: right; opacity: .9; }
+  input[type=number] {
+    width: 5.5rem; font: inherit; padding: .3rem .5rem; border-radius: .4rem;
+    border: 0; text-align: center; background: var(--input-bg); color: var(--input-fg);
+  }
+  #settings .check { grid-column: 1 / -1; display: flex; gap: .5rem; align-items: center; justify-content: center; }
+  #settings .check span { text-align: left; }
+  #custom[hidden] { display: none; }
+
+  /* ---- Reward tray: one square per round, filled as rounds complete ---- */
+  #tray { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; max-width: 96vw; }
+  #tray[hidden], #rewards[hidden] { display: none; }
+  .slot {
+    --size: min(160px, 20vw);
+    width: var(--size); height: var(--size);
+    border: 2px dashed var(--ring); border-radius: .8rem;
+    background: var(--panel); opacity: .55;
+    display: grid; place-items: center; overflow: hidden;
+  }
+  .slot.earned { border-style: solid; border-color: transparent; opacity: 1; animation: pop .5s ease-out; }
+  .slot img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  @keyframes pop { 0% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .slot.earned { animation: none; } }
+
+  #rewards { gap: .5rem; align-items: center; }
+  #rewards .label { opacity: .85; margin-right: .3rem; }
+  .reward-opt {
+    width: 3rem; height: 3rem; padding: .2rem; border-radius: .6rem;
+  }
+  .reward-opt img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .reward-opt.active { border-color: var(--ring); }
+
+  /* icons only appear in compact mode */
+  .ico { display: none; fill: currentColor; }
+  body { justify-content: safe center; overflow: auto; }
+
+  /* Compact mode: just the clock and a round pause/play button */
+  @media (max-width: 340px), (max-height: 300px) {
+    body { gap: min(3vh, 3vw); padding: 0; overflow: hidden; justify-content: center; }
+    #phase, #round, #reset, #skip, #presets, #themes, #settings, #tray, #rewards { display: none; }
+    #time { font-size: min(27vw, 40vh); }
+    #start {
+      width: min(24vw, 28vh); height: min(24vw, 28vh);
+      padding: 0; border-radius: 50%;
+      display: grid; place-items: center;
+    }
+    #start .lbl { display: none; }
+    #start .ico { width: 46%; height: 46%; }
+    body[data-running="true"] #start .ico-pause { display: block; }
+    body[data-running="false"] #start .ico-play { display: block; }
+  }
+</style>
+</head>
+<body data-phase="work" data-theme="1">
+  <div id="phase">Work</div>
+  <div id="time" role="timer" aria-live="off">25:00</div>
+  <div id="round"></div>
+  <div id="tray" role="img"></div>
+
+  <div class="row">
+    <button id="start" aria-label="Start">
+      <span class="lbl">Start</span>
+      <svg class="ico ico-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4.5" height="16" rx="1"/><rect x="13.5" y="4" width="4.5" height="16" rx="1"/></svg>
+      <svg class="ico ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>
+    </button>
+    <button id="reset">Reset</button>
+    <button id="skip">Skip</button>
+  </div>
+
+  <div class="row" id="presets" aria-label="Presets"></div>
+  <div class="row" id="rewards" role="radiogroup" aria-label="Reward" hidden>
+    <span class="label">Reward</span>
+  </div>
+
+  <div id="settings">
+    <div id="custom" hidden style="display:contents">
+      <label><span>Work (min)</span><input id="work" type="number" min="1" max="180" step="1"></label>
+      <label><span>Rest (min)</span><input id="rest" type="number" min="1" max="60" step="1"></label>
+    </div>
+    <label><span>Rounds before long break</span><input id="rounds" type="number" min="0" max="12" step="1"></label>
+    <label><span>Long break (min)</span><input id="long" type="number" min="1" max="60" step="1"></label>
+    <label class="check"><input id="auto" type="checkbox"><span>Auto-start next phase</span></label>
+    <label class="check"><input id="sound" type="checkbox"><span>Chime at phase end</span></label>
+  </div>
+
+  <div class="row" id="themes" role="radiogroup" aria-label="Theme"></div>
+
+<script>
+(() => {
+  const PRESETS = [
+    { name: "25 / 5",  work: 25, rest: 5 },
+    { name: "50 / 10", work: 50, rest: 10 },
+    { name: "52 / 17", work: 52, rest: 17 },
+    { name: "90 / 20", work: 90, rest: 20 },
+    { name: "Custom",  work: null, rest: null },
+  ];
+  const THEMES = ["Sage", "Ocean", "Lavender", "Dusk", "Clay", "Rose", "Slate", "Mist",
+                  "Coder Green", "Coder Amber"];
+  // Reward icons. To add one: drop a square image (transparent PNG/WebP, 256px
+  // recommended; shown at 128px) into rewards/ and add a line here.
+  const REWARDS = [
+    { name: "Salmon Shiba", src: "rewards/salmon-shiba.png" },
+    { name: "Shrimp Shiba", src: "rewards/shrimp-shiba.png" },
+    { name: "Tuna Shiba",   src: "rewards/tuna-shiba.png" },
+  ];
+  const DEFAULTS = { preset: 0, theme: 0, reward: 0, work: 25, rest: 5, rounds: 4, long: 15, auto: true, sound: true };
+  const KEY = "pomodoro.settings.v1";
+
+  const $ = id => document.getElementById(id);
+  const els = {
+    time: $("time"), phase: $("phase"), round: $("round"),
+    start: $("start"), reset: $("reset"), skip: $("skip"),
+    presets: $("presets"), themes: $("themes"), custom: $("custom"),
+    tray: $("tray"), rewards: $("rewards"),
+    work: $("work"), rest: $("rest"), rounds: $("rounds"), long: $("long"),
+    auto: $("auto"), sound: $("sound"),
+  };
+
+  // ---- settings -----------------------------------------------------------
+  let cfg = { ...DEFAULTS };
+  try { Object.assign(cfg, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch (e) {} };
+
+  const clampInt = (v, lo, hi, fallback) => {
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fallback;
+  };
+
+  const minutes = phase =>
+    phase === "work" ? cfg.work : phase === "rest" ? cfg.rest : cfg.long;
+
+  // ---- timer state --------------------------------------------------------
+  let phase = "work";
+  let round = 1;               // current work round, 1-based
+  const PROGRESS_KEY = "pomodoro.progress.v1";
+  let earned = 0;              // completed work rounds in the current cycle (saved, survives reload)
+  try { earned = Math.max(0, Math.round(Number(JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}").earned)) || 0); } catch (e) {}
+  const saveProgress = () => { try { localStorage.setItem(PROGRESS_KEY, JSON.stringify({ earned })); } catch (e) {} };
+  // Keep the round counter in step with the icons earned so far.
+  const roundFromEarned = () => (cfg.rounds > 0 && earned < cfg.rounds ? earned + 1 : 1);
+  let running = false;
+  let endAt = 0;              // ms timestamp when the running phase ends
+  let remaining = minutes("work") * 60000;
+  let tick = null;
+
+  const fmt = ms => {
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  };
+  const LABEL = { work: "Work", rest: "Rest", long: "Long break" };
+
+  function render() {
+    const left = running ? endAt - Date.now() : remaining;
+    const t = fmt(left);
+    els.time.textContent = t;
+    els.phase.textContent = LABEL[phase];
+    document.body.dataset.phase = phase;
+    els.round.textContent = cfg.rounds > 0 ? `Round ${round} of ${cfg.rounds}` : `Round ${round}`;
+    const label = running ? "Pause" : (remaining < minutes(phase) * 60000 ? "Resume" : "Start");
+    els.start.querySelector(".lbl").textContent = label;
+    els.start.setAttribute("aria-label", label);
+    document.body.dataset.running = running;
+    document.title = `${t} · ${LABEL[phase]}`;
+  }
+
+  function loop() {
+    if (!running) return;
+    if (endAt - Date.now() <= 0) { finishPhase(); return; }
+    render();
+  }
+
+  function setPhase(p) {
+    phase = p;
+    remaining = minutes(p) * 60000;
+  }
+
+  function nextPhase() {
+    if (phase === "work") {
+      const longDue = cfg.rounds > 0 && round >= cfg.rounds;
+      setPhase(longDue ? "long" : "rest");
+    } else {
+      if (phase === "long") { round = 1; earned = 0; renderTray(); } else round += 1;
+      setPhase("work");
+    }
+  }
+
+  // ---- reward tray ----------------------------------------------------------
+  function renderTray() {
+    saveProgress();
+    const n = cfg.rounds;
+    els.tray.hidden = n <= 0;
+    if (n <= 0) return;
+    while (els.tray.children.length < n) {
+      const s = document.createElement("div");
+      s.className = "slot";
+      els.tray.appendChild(s);
+    }
+    while (els.tray.children.length > n) els.tray.lastChild.remove();
+    const reward = REWARDS[cfg.reward];
+    [...els.tray.children].forEach((s, i) => {
+      const isEarned = i < earned;
+      if (isEarned && !s.firstChild) {
+        const img = document.createElement("img");
+        img.alt = reward.name; img.draggable = false;
+        s.appendChild(img);
+      }
+      if (!isEarned && s.firstChild) s.firstChild.remove();
+      if (s.firstChild) { s.firstChild.src = reward.src; s.firstChild.alt = reward.name; }
+      s.classList.toggle("earned", isEarned);
+    });
+    els.tray.setAttribute("aria-label", `${Math.min(earned, n)} of ${n} rounds complete`);
+  }
+
+  function finishPhase() {
+    chime();
+    if (phase === "work" && cfg.rounds > 0) {
+      if (earned >= cfg.rounds) earned = 0;   // a finished set was restored after a reload: start a new one
+      earned = Math.min(earned + 1, cfg.rounds);
+      renderTray();
+    }
+    nextPhase();
+    if (cfg.auto) {
+      endAt = Date.now() + remaining;
+      running = true;
+    } else {
+      running = false;
+      clearInterval(tick);
+      tick = null;
+    }
+    render();
+  }
+
+  function begin() {
+    if (running) return;
+    running = true;
+    endAt = Date.now() + remaining;
+    clearInterval(tick);
+    tick = setInterval(loop, 250);
+    render();
+  }
+
+  function stop() {
+    if (running) remaining = Math.max(0, endAt - Date.now());
+    running = false;
+    clearInterval(tick);
+    tick = null;
+  }
+
+  function resetAll() {
+    stop();
+    round = 1;
+    earned = 0;
+    renderTray();
+    setPhase("work");
+    render();
+  }
+
+  // ---- chime (WebAudio, no asset files) -----------------------------------
+  let ctx = null;
+  function chime() {
+    if (!cfg.sound) return;
+    try {
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === "suspended") ctx.resume();
+      [0, 0.25, 0.5].forEach((delay, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "sine"; o.frequency.value = [660, 880, 1100][i];
+        const t0 = ctx.currentTime + delay;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.4);
+        o.connect(g).connect(ctx.destination);
+        o.start(t0); o.stop(t0 + 0.45);
+      });
+    } catch (e) {}
+  }
+
+  // ---- UI wiring ----------------------------------------------------------
+  PRESETS.forEach((p, i) => {
+    const b = document.createElement("button");
+    b.textContent = p.name;
+    b.dataset.index = i;
+    b.addEventListener("click", () => choosePreset(i));
+    els.presets.appendChild(b);
+  });
+
+  THEMES.forEach((name, i) => {
+    const b = document.createElement("button");
+    b.className = "swatch";
+    b.dataset.theme = i + 1;
+    b.textContent = i + 1;
+    b.title = `${i + 1}. ${name}`;
+    b.setAttribute("role", "radio");
+    b.setAttribute("aria-label", `Theme ${i + 1}: ${name}`);
+    b.addEventListener("click", () => { cfg.theme = i; save(); syncInputs(); });
+    els.themes.appendChild(b);
+  });
+
+  // Reward picker (only shown when there is a choice to make)
+  REWARDS.forEach((r, i) => {
+    const b = document.createElement("button");
+    b.className = "reward-opt";
+    b.title = r.name;
+    b.setAttribute("role", "radio");
+    b.setAttribute("aria-label", `Reward: ${r.name}`);
+    const img = document.createElement("img");
+    img.src = r.src; img.alt = ""; img.draggable = false;
+    b.appendChild(img);
+    b.addEventListener("click", () => { cfg.reward = i; save(); syncInputs(); renderTray(); });
+    els.rewards.appendChild(b);
+  });
+  els.rewards.hidden = REWARDS.length < 2;
+
+  function syncInputs() {
+    [...els.rewards.querySelectorAll(".reward-opt")].forEach((b, i) => {
+      b.classList.toggle("active", i === cfg.reward);
+      b.setAttribute("aria-checked", i === cfg.reward);
+    });
+    document.body.dataset.theme = cfg.theme + 1;
+    [...els.themes.children].forEach((b, i) => {
+      b.classList.toggle("active", i === cfg.theme);
+      b.setAttribute("aria-checked", i === cfg.theme);
+    });
+    els.work.value = cfg.work; els.rest.value = cfg.rest;
+    els.rounds.value = cfg.rounds; els.long.value = cfg.long;
+    els.auto.checked = cfg.auto; els.sound.checked = cfg.sound;
+    els.custom.hidden = PRESETS[cfg.preset].work !== null;
+    [...els.presets.children].forEach((b, i) => b.classList.toggle("active", i === cfg.preset));
+  }
+
+  function applyDurations() {
+    stop();
+    round = roundFromEarned();
+    renderTray();
+    setPhase("work");
+    save(); syncInputs(); render();
+  }
+
+  function choosePreset(i) {
+    cfg.preset = i;
+    const p = PRESETS[i];
+    if (p.work !== null) { cfg.work = p.work; cfg.rest = p.rest; }
+    applyDurations();
+  }
+
+  els.start.addEventListener("click", () => {
+    if (ctx && ctx.state === "suspended") ctx.resume();
+    if (!ctx && cfg.sound) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    running ? (stop(), render()) : begin();
+  });
+  els.reset.addEventListener("click", resetAll);
+  els.skip.addEventListener("click", () => {
+    const was = running;
+    stop();
+    nextPhase();
+    if (was) begin(); else render();
+  });
+
+  els.work.addEventListener("change", () => { cfg.work = clampInt(els.work.value, 1, 180, cfg.work); applyDurations(); });
+  els.rest.addEventListener("change", () => { cfg.rest = clampInt(els.rest.value, 1, 60, cfg.rest); applyDurations(); });
+  els.long.addEventListener("change", () => { cfg.long = clampInt(els.long.value, 1, 60, cfg.long); applyDurations(); });
+  els.rounds.addEventListener("change", () => { cfg.rounds = clampInt(els.rounds.value, 0, 12, cfg.rounds); applyDurations(); });
+  els.auto.addEventListener("change", () => { cfg.auto = els.auto.checked; save(); });
+  els.sound.addEventListener("change", () => { cfg.sound = els.sound.checked; save(); });
+
+  document.addEventListener("keydown", e => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
+    if (e.code === "Space") { e.preventDefault(); els.start.click(); }
+  });
+
+  // sanitize anything loaded from storage
+  cfg.preset = clampInt(cfg.preset, 0, PRESETS.length - 1, 0);
+  cfg.theme = clampInt(cfg.theme, 0, THEMES.length - 1, 0);
+  cfg.reward = clampInt(cfg.reward, 0, REWARDS.length - 1, 0);
+  cfg.work = clampInt(cfg.work, 1, 180, 25);
+  cfg.rest = clampInt(cfg.rest, 1, 60, 5);
+  cfg.rounds = clampInt(cfg.rounds, 0, 12, 4);
+  cfg.long = clampInt(cfg.long, 1, 60, 15);
+  remaining = cfg.work * 60000;
+  round = roundFromEarned();
+  syncInputs();
+  renderTray();
+  render();
+})();
+</script>
+</body>
+</html>
